@@ -1,6 +1,6 @@
 # REshare Scripts for PyGhidra
 
-These scripts allow import/export to/from the [REshare](https://github.com/v-p-b/reshare) interchange format in Ghidra.
+These scripts allow import/export to/from the [REshare](https://github.com/v-p-b/reshare) exchange format in Ghidra.
 
 As these tools are highly opinionated (what data to touch, how, when...) I'm currently aiming for script-like behavior, so the code can be easily tweaked. Thus the configuration interface is currently constrants on the top of the scripts. We may change this to something more advanced, suggestions welcome! 
 
