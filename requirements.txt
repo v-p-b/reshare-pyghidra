@@ -1,1 +1,2 @@
 reshare==0.1.1
+ghidra-stubs==11.4
