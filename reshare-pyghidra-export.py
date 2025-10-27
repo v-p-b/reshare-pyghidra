@@ -22,7 +22,7 @@ from jpype import JClass
 
 LOG_FILE = None
 EXPORT_PATH = "/tmp/reshare.json"
-SOURCE_ARCHIVE_PREFIX = "" 
+SOURCE_ARCHIVE_PREFIX = ""
 
 # -----------------------------------------------------------------------------
 
@@ -102,48 +102,51 @@ def get_function_symbols() -> list[ReshSymbol]:
     return ret
 
 
-RESH_TYPE_CACHE = {}
+RESH_TYPE_CACHE: dict[str, ReshDataType] = {}
 
 
 def get_resh_data_type_from_ghidra(T: DataType) -> ReshDataType:
     if T.getName() in RESH_TYPE_CACHE:
         return RESH_TYPE_CACHE[T.getName()]
     logger.info(f"Adding {T.getName()}")
-    ret = ReshDataType(name=T.getName(), size=int(T.getLength()), content=None, modifiers=[])
+    ret = ReshDataType(
+        name=T.getName(), size=int(T.getLength()), content=None, modifiers=[]
+    )
 
+    content: ReshDataTypeContent
     if isinstance(T, JClass("ghidra.program.database.data.StructureDB")):
         members = []
         for m in T.getComponents():
             resh_member_type = get_resh_data_type_from_ghidra(m.getDataType())
             resh_member = ReshStructureMemberPy(
-                name=m.getFieldName(), type=resh_member_type.name, offset=int(m.getOffset())
+                name=m.getFieldName(),
+                type=resh_member_type.name,
+                offset=int(m.getOffset()),
             )
             members.append(resh_member)
         content = ReshDataTypeContentStructurePy(members=members)
-        ret.content = content
     elif isinstance(T, JClass("ghidra.program.database.data.ArrayDB")):
         content = ReshDataTypeContentArrayPy(
             base_type=T.getDataType().getName(), length=int(T.getElementLength())
         )
-        ret.content = content
     elif isinstance(T, JClass("ghidra.program.database.data.EnumDB")):
-        content = ReshDataTypeContentEnumPy(base_type="void *", members=[]) # TODO Base type needs better representation
+        content = ReshDataTypeContentEnumPy(
+            base_type="void *", members=[]
+        )  # TODO Base type needs better representation
         for name in T.getNames():
             value = int(T.getValue(name))
             member = ReshEnumMember(name=name, value=value)
             content.members.append(member)
-        ret.content = content
     elif isinstance(T, JClass("ghidra.program.database.data.PointerDB")):
-        target_type=T.getDataType()
-        target_type_name="void"
+        target_type = T.getDataType()
+        target_type_name = "void"
         if target_type is not None:
-            target_type_name = target_type.getName() 
+            target_type_name = target_type.getName()
         content = ReshDataTypeContentPointerPy(target_type=target_type_name)
-        ret.content = content
     else:
         content = ReshDataTypeContentPrimitivePy()
-        ret.content = content
 
+    ret.content = content
     RESH_TYPE_CACHE[T.getName()] = ret
     return ret
 
