@@ -61,15 +61,12 @@ def get_function_symbols() -> list[ReshSymbol]:
         func_name = func.getName()
         func_type_name = "f_%s" % (func.getName())
         func_sym = ReshSymbol(
-            address=None,
-            name=None,
-            confidence=None,
+            address=address_to_resh(func.getEntryPoint()),
+            name=func.getName(),
+            confidence=ReshSymbolConfidence.FACT,
             labels=None,
             type=ReshTypeSpec(type_name=func_type_name, embedded_type=None),
         )
-        func_sym.name = func.getName()
-        func_sym.address = address_to_resh(func.getEntryPoint())
-        func_sym.confidence = ReshSymbolConfidence.FACT
         func_arguments = []
         for a in func.getParameters():
             arg_type_name = a.getFormalDataType().getDisplayName()
