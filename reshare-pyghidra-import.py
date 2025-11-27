@@ -16,7 +16,7 @@ import sys
 
 IMPORT_PATH = "/tmp/reshare.json"
 LOG_FILE = None
-TYPE_IMPORT_ALLOW_RE = None # re.compile("Dummy.*")
+TYPE_IMPORT_ALLOW_RE = None  # re.compile("Dummy.*")
 TYPE_IMPORT_DENY_RE = None
 FUNC_SYM_IMPORT_ALLOW_RE = None
 FUNC_SYM_IMPORT_DENY_RE = None
@@ -30,11 +30,11 @@ handlers = [
 if LOG_FILE is not None:
     handlers.append(logging.FileHandler(LOG_FILE))
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="[%(levelname)s](%(asctime)s) %(message)s",
-    handlers=handlers,
-)
+log_fmt = logging.Formatter("[%(levelname)s](%(asctime)s) %(message)s")
+for h in handlers:
+    h.setLevel(logging.DEBUG)
+    h.setFormatter(log_fmt)
+    logger.addHandler(h)
 
 logger.info("Starting import...")
 
@@ -63,6 +63,7 @@ from ghidra.program.model.listing import FunctionSignature
 
 address_factory = getAddressFactory()
 dtm = currentProgram.getDataTypeManager()
+
 
 def _find_data_type(name: str) -> DataType:
     res = []
@@ -101,6 +102,7 @@ base_type_map = {
     "T_RCHAR": _find_data_type("char"),
     "T_SHORT": _find_data_type("ushort"),
     "T_UCHAR": _find_data_type("uchar"),
+    "T_CHAR": _find_data_type("char"),
     "T_UINT4": _find_data_type("uint"),
     "T_ULONG": _find_data_type("ulonglong"),
     "T_UQUAD": _find_data_type("UQUAD"),
@@ -137,7 +139,9 @@ def resh_address_to_address(resh_addr: ReshAddress) -> Address:
 def get_ghidra_type_by_name(name: str) -> ReshDataType:
     return get_cached_ghidra_type_by_name(name, True)
 
+
 def get_cached_ghidra_type_by_name(name: str, create_new=True) -> DataType:
+    logger.debug(f"Looking up cached type: {name}")
     dt_name = _canonize_dt_name(name)
     if dt_name in base_type_map and base_type_map[dt_name] is not None:
         return base_type_map[dt_name]
@@ -169,30 +173,45 @@ def get_ghidra_type_from_resh_type(T: ReshDataType, skip_cache=False) -> DataTyp
         name = _canonize_dt_name(T.name)
         logger.info("Adding primitive type '%s'" % (name))
         ret = None
-        if T.size == 0:
-            ret = TypedefDataType(RESHARE_CATEGORY_PATH, name, base_type_map["T_VOID"])
-        elif T.size == 1:
-            ret = TypedefDataType(RESHARE_CATEGORY_PATH, name, base_type_map["T_UCHAR"])
-        elif T.size == 2:
-            ret = TypedefDataType(RESHARE_CATEGORY_PATH, name, base_type_map["T_SHORT"])
-        elif T.size == 4:
-            ret = TypedefDataType(RESHARE_CATEGORY_PATH, name, base_type_map["T_INT4"])
-        elif T.size == 8:
-            ret = TypedefDataType(RESHARE_CATEGORY_PATH, name, base_type_map["T_INT8"])
-        elif T.size == -1: # Exported function type
-            ret = TypedefDataType(RESHARE_CATEGORY_PATH, name, base_type_map["T_INT8"])
-        else:
+        try:
+            if T.size == 0:
+                ret = TypedefDataType(
+                    RESHARE_CATEGORY_PATH, name, base_type_map["T_VOID"]
+                )
+            elif T.size == 1:
+                ret = TypedefDataType(
+                    RESHARE_CATEGORY_PATH, name, base_type_map["T_UCHAR"]
+                )
+            elif T.size == 2:
+                ret = TypedefDataType(
+                    RESHARE_CATEGORY_PATH, name, base_type_map["T_SHORT"]
+                )
+            elif T.size == 4:
+                ret = TypedefDataType(
+                    RESHARE_CATEGORY_PATH, name, base_type_map["T_INT4"]
+                )
+            elif T.size == 8:
+                ret = TypedefDataType(
+                    RESHARE_CATEGORY_PATH, name, base_type_map["T_INT8"]
+                )
+            elif T.size == -1:  # Exported function type
+                ret = TypedefDataType(
+                    RESHARE_CATEGORY_PATH, name, base_type_map["T_INT8"]
+                )
+        except Exception as e:
+            logger.error(f"Couldn't map basic type for length {T.size}")
+        if ret is None:
             # raise ReshPyGhidraException("Can't handle primitive type size: %d" % (T.size))
-            ret = ArrayDataType(base_type_map["T_UCHAR"], T.size)
+            ret = ArrayDataType(base_type_map["T_CHAR"], T.size)
         base_type_map[name] = ret
     elif T.content.type == "POINTER":
         name = _canonize_dt_name(T.name)
         logger.info("Adding pointer '%s'" % (name))
         pointed = base_type_map["T_VOID"]
         ret = PointerDataType(pointed, dtm)
-        base_type_map[
-            name
-        ] = ret  # We have to cache a blank pointer to handle circular references
+        base_type_map[name] = (
+            ret  # We have to cache a blank pointer to handle circular references
+        )
         pointed = None
         pointed = get_cached_ghidra_type_by_name(
             T.content.target_type.type_name,
@@ -302,6 +321,7 @@ def import_data_types(resh: Reshare):
                 dtm.addDataType(g_dt, DataTypeConflictHandler.KEEP_HANDLER)
         except ReshPyGhidraException as e:
             logger.error("[-] Couln't import '%s' :(\n%s" % (dt.name, str(e)))
+            # raise
     dtm.endTransaction(t, True)
 
 
