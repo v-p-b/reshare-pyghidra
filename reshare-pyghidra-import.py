@@ -10,16 +10,22 @@ import json
 import logging
 import sys
 
+from ghidra.util.exception import DuplicateNameException
+
+#from ghidra.ghidra_builtins import getFunctionAt, createFunction, getFunction
+
 # -----------------------------------------------------------------------------
 # CONFIGURATION
 # -----------------------------------------------------------------------------
 
 IMPORT_PATH = "/tmp/reshare.json"
 LOG_FILE = None
+LOG_LEVEL=logging.DEBUG
 TYPE_IMPORT_ALLOW_RE = None  # re.compile("Dummy.*")
 TYPE_IMPORT_DENY_RE = None
 FUNC_SYM_IMPORT_ALLOW_RE = None
 FUNC_SYM_IMPORT_DENY_RE = None
+FUNC_SYM_IMPORT_ADDRESS = True
 
 # -----------------------------------------------------------------------------
 
@@ -31,8 +37,10 @@ if LOG_FILE is not None:
     handlers.append(logging.FileHandler(LOG_FILE))
 
 log_fmt = logging.Formatter("[%(levelname)s](%(asctime)s) %(message)s")
+logger.handlers.clear()
+logger.setLevel(LOG_LEVEL)
 for h in handlers:
-    h.setLevel(logging.DEBUG)
+    h.setLevel(LOG_LEVEL)
     h.setFormatter(log_fmt)
     logger.addHandler(h)
 
@@ -59,7 +67,7 @@ from ghidra.program.model.data import (
 from docking.widgets.filechooser import GhidraFileChooser
 from ghidra.app.cmd.function import ApplyFunctionSignatureCmd
 from ghidra.program.model.symbol import SourceType
-from ghidra.program.model.listing import FunctionSignature
+from ghidra.program.model.listing import FunctionSignature, Function
 
 address_factory = getAddressFactory()
 dtm = currentProgram.getDataTypeManager()
@@ -128,10 +136,16 @@ def _canonize_dt_name(name: str) -> str:
     name = PTR_RE.sub("\\1 *", name)
     return name
 
+def _canonize_sym_name(name: str) -> str:
+    name=name.strip()
+    name=SPACE_RE.sub("_", name)
+    return name
 
 def resh_address_to_address(resh_addr: ReshAddress) -> Address:
     offset = int.from_bytes(bytes(resh_addr.bytes), byteorder="little", signed=False)
     address_space = address_factory.getAddressSpace(resh_addr.space)
+    if address_space is None:
+        address_space=address_factory.getDefaultAddressSpace()
     return address_factory.getAddress(address_space.getSpaceID(), offset)
 
 
@@ -331,7 +345,7 @@ def import_symbols(resh: Reshare):
             monitor.checkCancelled()
         except:
             exit()
-
+        sym_name=_canonize_sym_name(sym.name)
         sym_type = None
         if sym.type is not None:
             sym_type = get_cached_ghidra_type_by_name(sym.type.type_name)
@@ -352,6 +366,25 @@ def import_symbols(resh: Reshare):
                 )
                 cmd.applyTo(currentProgram)
 
+            if FUNC_SYM_IMPORT_ADDRESS:
+                logger.info(f"Adding {sym_name} by address")
+                addr=resh_address_to_address(sym.address)
+                f : Function = getFunctionAt(addr)
+                if f is None:
+                    logger.warning(f"  Creating new function symbol {sym_name}")
+                    f=createFunction(addr, sym_name)
+                else:
+                    try:
+                        logger.debug(f"  Setting name for existing symbol")
+                        f.setName(sym_name, SourceType.USER_DEFINED)
+                    except DuplicateNameException:
+                        logger.debug(f"Function symbol {sym_name} already present")
+
+                logger.debug("Applying function signature on address", f.getName(), sym_type)
+                cmd = ApplyFunctionSignatureCmd(
+                    f.getEntryPoint(), sym_type, SourceType.USER_DEFINED
+                )
+                cmd.applyTo(currentProgram)
 
 with open(IMPORT_PATH, "r") as input_json:
     data = json.load(input_json)
