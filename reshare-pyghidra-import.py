@@ -25,7 +25,7 @@ TYPE_IMPORT_ALLOW_RE = None  # re.compile("Dummy.*")
 TYPE_IMPORT_DENY_RE = None
 FUNC_SYM_IMPORT_ALLOW_RE = None
 FUNC_SYM_IMPORT_DENY_RE = None
-FUNC_SYM_IMPORT_ADDRESS = True
+FUNC_SYM_IMPORT_ADDRESS = False
 
 # -----------------------------------------------------------------------------
 

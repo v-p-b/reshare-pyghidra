@@ -23,6 +23,7 @@ from jpype import JClass
 # -----------------------------------------------------------------------------
 
 LOG_FILE = None
+LOG_LEVEL = logging.DEBUG
 EXPORT_PATH = "/tmp/reshare.json"
 SOURCE_ARCHIVE_PREFIX = ""
 
@@ -38,8 +39,10 @@ handlers = [
 if LOG_FILE is not None:
     handlers.append(logging.FileHandler(LOG_FILE))
 
+logger.handlers.clear()
+logger.setLevel(LOG_LEVEL)
 for h in handlers:
-    h.setLevel(logging.DEBUG)
+    h.setLevel(LOG_LEVEL)
     h.setFormatter(log_fmt)
     logger.addHandler(h)
 

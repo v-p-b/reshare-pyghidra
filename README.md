@@ -21,6 +21,7 @@ Configuration variables:
 
 * `EXPORT_PATH` - Path to the export file.
 * `LOG_FILE` - The console can't hold too much information so it's good to have an on-disk log to investigate any failed exports.
+* `LOG_LEVEL` - Log level
 * `SOURCE_ARCHIVE_PREFIX` - Only export data types from data type archives starting with this string.
 
 
@@ -34,9 +35,10 @@ Configuration variables:
 
 * `EXPORT_PATH` - Path to the import file.
 * `LOG_FILE` - The console can't hold too much information so it's good to have an on-disk log to investigate any failed imports.
+* `LOG_LEVEL` - Log level
 * `TYPE_IMPORT_ALLOW_RE` - Only import types that match this regular expression (`None` to disable). 
 * `TYPE_IMPORT_DENY_RE` - Don't import types that match this regular expression (`None` to disable).
 * `FUNC_SYM_IMPORT_ALLOW_RE` - Only import function signatures that match this regular expression (`None` to disable).
-* `FUNC_SYM_IMPORT_DENY_RE` = Don't import function signatures that match this regular expression (`None` to disable).
-
+* `FUNC_SYM_IMPORT_DENY_RE` - Don't import function signatures that match this regular expression (`None` to disable).
+* `FUNC_SYM_IMPORT_ADDRESS` - Import function symbols to addresses as indicated in the REshare JSON (default `False`)
 
