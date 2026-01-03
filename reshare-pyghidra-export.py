@@ -66,10 +66,12 @@ def get_function_symbols() -> list[ReshSymbol]:
     ret: list[ReshSymbol] = []
     while func is not None:
         func_name = func.getName()
-        func_type_name = "f_%s" % (func.getName())
+        func_type_name = func.getName()
+        if not func_type_name.startswith("f_"):
+            func_type_name = "f_%s" % (func.getName())
         func_sym = ReshSymbol(
             address=address_to_resh(func.getEntryPoint()),
-            name=func.getName(),
+            name=func_name,
             confidence=ReshSymbolConfidence.FACT,
             labels=None,
             type=ReshTypeSpec(type_name=func_type_name, embedded_type=None),
@@ -203,8 +205,8 @@ export = ResharePy(
 )
 
 export.symbols.extend(get_function_symbols())
-export.data_types.extend([v for _, v in RESH_TYPE_CACHE.items()])
-export.data_types.extend(get_data_types())
+get_data_types() # We ignore the return...
+export.data_types.extend([v for _, v in RESH_TYPE_CACHE.items()]) # ...all types must be in cache already
 
 with open(EXPORT_PATH, "w") as out:
     out.write(json.dumps(export.to_json_data(), indent=2))
