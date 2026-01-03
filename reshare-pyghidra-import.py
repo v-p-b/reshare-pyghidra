@@ -188,7 +188,7 @@ def get_ghidra_type_from_resh_type(T: ReshDataType, skip_cache=False) -> DataTyp
         logger.info("Adding primitive type '%s'" % (name))
         ret = None
         try:
-            if T.size == 0:
+            if T.size < 1:
                 ret = TypedefDataType(
                     RESHARE_CATEGORY_PATH, name, base_type_map["T_VOID"]
                 )
@@ -360,7 +360,7 @@ def import_symbols(resh: Reshare):
                 continue
             f = getFunction(sym.name)
             if f is not None:
-                logger.info("Applying function signature ", f.getName(), sym_type)
+                logger.info("Applying function signature %s %s ", f.getName(), sym_type)
                 cmd = ApplyFunctionSignatureCmd(
                     f.getEntryPoint(), sym_type, SourceType.USER_DEFINED
                 )
@@ -380,11 +380,12 @@ def import_symbols(resh: Reshare):
                     except DuplicateNameException:
                         logger.debug(f"Function symbol {sym_name} already present")
 
-                logger.debug("Applying function signature on address", f.getName(), sym_type)
+                logger.debug("Applying function signature on address %s %s", f.getName(), sym_type)
                 cmd = ApplyFunctionSignatureCmd(
                     f.getEntryPoint(), sym_type, SourceType.USER_DEFINED
                 )
                 cmd.applyTo(currentProgram)
+                f.setName(sym_name, SourceType.USER_DEFINED)
 
 with open(IMPORT_PATH, "r") as input_json:
     data = json.load(input_json)
