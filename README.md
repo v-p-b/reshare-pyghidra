@@ -7,7 +7,7 @@ As these tools are highly opinionated (what data to touch, how, when...) I'm cur
 **Don't forget to install dependencies to your PyGhidra virtual environment:**
 
 ```
-(venv) pip install -r requirements.txt
+(venv) pip install .
 ```
 
 Ghidra must be restarted is Python dependencies are updated for the changes to take effect.
