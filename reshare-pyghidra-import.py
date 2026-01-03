@@ -25,7 +25,7 @@ TYPE_IMPORT_ALLOW_RE = None  # re.compile("Dummy.*")
 TYPE_IMPORT_DENY_RE = None
 FUNC_SYM_IMPORT_ALLOW_RE = None
 FUNC_SYM_IMPORT_DENY_RE = None
-FUNC_SYM_IMPORT_ADDRESS = False
+FUNC_SYM_IMPORT_ADDRESS = True
 
 # -----------------------------------------------------------------------------
 
@@ -328,7 +328,7 @@ def import_data_types(resh: Reshare):
             and TYPE_IMPORT_DENY_RE.fullmatch(dt.name) is not None
         ):
             continue
-        logger.info("[*] Importing type", dt.name)
+        logger.info("[*] Importing type %s", dt.name)
         try:
             g_dt = get_ghidra_type_from_resh_type(dt)
             if g_dt is not None:
