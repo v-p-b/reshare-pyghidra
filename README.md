@@ -12,6 +12,16 @@ As these tools are highly opinionated (what data to touch, how, when...) I'm cur
 
 Ghidra must be restarted is Python dependencies are updated for the changes to take effect.
 
+## Notes for Ghidra
+
+### Type Name Conflicts
+
+Ghidra allows types of the same name to be present in multiple Typeinfo Libraries. This can result in incorrect reserialization e.g. if a fully reversed structure is overwritten with an empty one in the exported JSON due to name conflict. 
+
+You can use the following tools to prevent/mitigate such problems:
+
+* Use Ghidra's [conflict resolution strategies](https://scrapco.de/ghidra_docs/VERSION12/Features/Base/DataTypeManagerPlugin/data_type_manager_description.htm) to avoid duplicate names
+* Use the `SOURCE_ARCHIVE_PREFIX` configuration option to only export from your primary archive
 
 ## Exporter
 

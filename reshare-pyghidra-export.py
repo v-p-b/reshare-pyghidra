@@ -78,6 +78,7 @@ def get_function_symbols() -> list[ReshSymbol]:
         )
         func_arguments: list[ReshFunctionArgument] = []
         for a in func.getParameters():
+            # TODO create data type if missing!
             arg_type_name = a.getFormalDataType().getDisplayName()
             arg_name = a.getName()
             resh_arg = ReshFunctionArgumentPy(
@@ -133,11 +134,13 @@ def get_resh_data_type_from_ghidra(T: DataType) -> ReshDataType:
 
     content: ReshDataTypeContent
     if T_name.startswith("undefined"):
+        logger.debug("Adding array in place of Ghidra `undefined` type")
         ret.name = "resh_" + ret.name
         content = ReshDataTypeContentArrayPy(
             base_type="char", length=int(T.getLength())
         )
     elif isinstance(T, JClass("ghidra.program.database.data.StructureDB")):
+        logger.debug("Adding structure type")
         members = []
         for m in T.getComponents():
             resh_member_type = get_resh_data_type_from_ghidra(m.getDataType())
@@ -149,6 +152,7 @@ def get_resh_data_type_from_ghidra(T: DataType) -> ReshDataType:
             members.append(resh_member)
         content = ReshDataTypeContentStructurePy(members=members)
     elif isinstance(T, JClass("ghidra.program.database.data.UnionDB")):
+        logger.debug("Adding union type")
         members = []
         for m in T.getComponents():
             resh_member_type = get_resh_data_type_from_ghidra(m.getDataType())
@@ -160,10 +164,13 @@ def get_resh_data_type_from_ghidra(T: DataType) -> ReshDataType:
             members.append(resh_member)
         content = ReshDataTypeContentUnionPy(members=members)
     elif isinstance(T, JClass("ghidra.program.database.data.ArrayDB")):
+        logger.debug("Adding array type")
         content = ReshDataTypeContentArrayPy(
             base_type=T.getDataType().getName(), length=int(T.getElementLength())
         )
     elif isinstance(T, JClass("ghidra.program.database.data.EnumDB")):
+
+        logger.debug("Adding enum type")
         content = ReshDataTypeContentEnumPy(
             base_type="void *", members=[]
         )  # TODO Base type needs better representation
@@ -172,12 +179,19 @@ def get_resh_data_type_from_ghidra(T: DataType) -> ReshDataType:
             member = ReshEnumMember(name=name, value=value)
             content.members.append(member)
     elif isinstance(T, JClass("ghidra.program.database.data.PointerDB")):
+        logger.debug("Adding pointer type")
         target_type = T.getDataType()
         target_type_name = "void"
         if target_type is not None:
             target_type_name = target_type.getName()
         content = ReshDataTypeContentPointerPy(target_type=target_type_name)
+    elif isinstance(T, JClass("ghidra.program.database.data.TypedefDB")):
+        target_ghidra_type=T.getDataType()
+        logger.debug(f"Adding typedef to {target_ghidra_type}")
+        resh_data_type=get_resh_data_type_from_ghidra(target_ghidra_type)
+        content = resh_data_type.content
     else:
+        logger.warning(f"Falling back to primitive type! {type(T)}")
         content = ReshDataTypeContentPrimitivePy()
 
     ret.content = content
