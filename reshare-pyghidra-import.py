@@ -87,8 +87,7 @@ def main():
         if IMPORT_MODE == "address":
             logger.info(f"Import by address {f.getName()}")
             sym_data=importer.get_symbol_by_address(f.getEntryPoint().getOffset())
-            if sym_data is not None:
-                f.setName(_canonize_sym_name(sym_data.name), SourceType.USER_DEFINED)
+
         elif IMPORT_MODE == "name":
             logger.info(f"Import by name {f.getName()}")
             sym_data = importer.get_symbol_by_name(f.getName())
@@ -97,6 +96,8 @@ def main():
 
         if sym_data is not None:
             set_function_signature_by_address(f.getEntryPoint(), sym_data.ghidra_type)
+            if IMPORT_MODE == "address":
+                f.setName(_canonize_sym_name(sym_data.name), SourceType.USER_DEFINED)
             print(f"Function at {f.getEntryPoint().getOffset():X}: {sym_data.name}")
         else:
             logger.error(f"Can't find symbol data for {f.getName()}")
