@@ -8,6 +8,7 @@
 
 import json
 import logging
+import os
 from typing import Any
 
 from reshare import *
@@ -24,7 +25,7 @@ from jpype import JClass
 
 LOG_FILE = None
 LOG_LEVEL = logging.DEBUG
-EXPORT_PATH = "/tmp/reshare.json"
+EXPORT_PATH = os.environ.get("EXPORT_PATH","/tmp/reshare.json")
 SOURCE_ARCHIVE_PREFIX = ""
 
 # -----------------------------------------------------------------------------
@@ -222,6 +223,7 @@ export.symbols.extend(get_function_symbols())
 get_data_types() # We ignore the return...
 export.data_types.extend([v for _, v in RESH_TYPE_CACHE.items()]) # ...all types must be in cache already
 
+logger.info(f"Exporting to: {EXPORT_PATH}")
 with open(EXPORT_PATH, "w") as out:
     out.write(json.dumps(export.to_json_data(), indent=2))
 

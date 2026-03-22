@@ -1,12 +1,13 @@
 [project]
 name = "reshare-pyghidra"
-version = "0.1.2"
+version = "0.1.3"
 description = "REshare import and export tools for Ghidra"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "ghidra-stubs>=11.4",
     "reshare==0.1.3",
+    "reshare-pyghidra>=0.1.3"
 ]
 
 [dependency-groups]

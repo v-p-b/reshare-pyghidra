@@ -13,6 +13,8 @@ with tempfile.TemporaryDirectory(delete=False) as project_dir:
     reshare_path=os.path.join(project_dir, "reshare.json")
     os.environ["IMPORT_PATH"]=reshare_path
     os.environ["EXPORT_PATH"]=reshare_path
+    os.environ["IMPORT_MODE"]="address"
+
     with pyghidra.open_project(project_dir, "TestProject", create=True) as project:
         loader = pyghidra.program_loader().project(project)
         p_debug = None
