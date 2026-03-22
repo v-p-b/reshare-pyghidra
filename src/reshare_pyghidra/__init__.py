@@ -37,12 +37,14 @@ PTR_RE = re.compile("([^ ])\\*")
 
 RESHARE_CATEGORY_PATH = CategoryPath("/REshare")
 
+
 @dataclass
 class ReshGhidraSymbol:
     name: str
     address: int
     ghidra_type: DataType
     resh_symbol: ReshSymbol
+
 
 class ReshPyGhidraException(Exception):
     pass
@@ -60,6 +62,7 @@ def _canonize_sym_name(name: str) -> str:
     name = SPACE_RE.sub("_", name)
     return name
 
+
 class ReshGhidraImporter(object):
     def __init__(self, program: Program, json_path: str, monitor: TaskMonitor):
         self.program = program
@@ -71,8 +74,8 @@ class ReshGhidraImporter(object):
             data = json.load(input_json)
             self.resh = Reshare.from_json_data(data)
 
-        self._ghidra_symbol_map_address:dict[int, ReshGhidraSymbol]={}
-        self._ghidra_symbol_map_name:dict[str, ReshGhidraSymbol]={}
+        self._ghidra_symbol_map_address: dict[int, ReshGhidraSymbol] = {}
+        self._ghidra_symbol_map_name: dict[str, ReshGhidraSymbol] = {}
 
         self.resh_data_types = {}
         self.base_type_map = {
@@ -106,8 +109,8 @@ class ReshGhidraImporter(object):
             "T_WCHAR": self._find_data_type("wchar_t"),
             "T_VOID": VoidDataType(),
         }
-        self._symbol_filters: list[Callable[[ReshSymbol], bool]]=[]
-        self._data_type_filters: list[Callable[[ReshDataType], bool]]=[]
+        self._symbol_filters: list[Callable[[ReshSymbol], bool]] = []
+        self._data_type_filters: list[Callable[[ReshDataType], bool]] = []
 
     def _find_data_type(self, name: str) -> DataType:
         res = []
@@ -122,7 +125,9 @@ class ReshGhidraImporter(object):
             return res[0]
 
     def resh_address_to_address(self, resh_addr: ReshAddress) -> Address:
-        offset = int.from_bytes(bytes(resh_addr.bytes), byteorder="little", signed=False)
+        offset = int.from_bytes(
+            bytes(resh_addr.bytes), byteorder="little", signed=False
+        )
         address_space = self.address_factory.getAddressSpace(resh_addr.space)
         if address_space is None:
             address_space = self.address_factory.getDefaultAddressSpace()
@@ -131,7 +136,6 @@ class ReshGhidraImporter(object):
     def import_resh(self):
         self._import_data_types()
         self._import_symbols()
-
 
     def add_symbol_filter(self, filt: Callable[[ReshSymbol], bool]):
         self._symbol_filters.append(filt)
@@ -169,7 +173,7 @@ class ReshGhidraImporter(object):
 
     def get_ghidra_type_from_resh_type(
         self, T: ReshDataType, skip_cache=False
-    ) -> DataType|None:
+    ) -> DataType | None:
         ret = None
         if not skip_cache:
             ret = self.get_cached_ghidra_type_by_name(T.name, False)
@@ -235,8 +239,10 @@ class ReshGhidraImporter(object):
             ret = StructureDataType(RESHARE_CATEGORY_PATH, name, 0)
             self.base_type_map[name] = ret
             for member in T.content.members:
-                #member_data_type = self.get_ghidra_type_by_name(member.type.type_name)
-                member_data_type = self.get_cached_ghidra_type_by_name(member.type.type_name)
+                # member_data_type = self.get_ghidra_type_by_name(member.type.type_name)
+                member_data_type = self.get_cached_ghidra_type_by_name(
+                    member.type.type_name
+                )
                 if member_data_type is not None:
                     ret.add(
                         member_data_type, member_data_type.getLength(), member.name, ""
@@ -253,7 +259,9 @@ class ReshGhidraImporter(object):
             for member in T.content.members:
                 if member.type.type_name in self.resh_data_types:
                     member_data_type = self.resh_data_types[member.type.type_name]
-                    ghidra_data_type = self.get_ghidra_type_from_resh_type(member_data_type)
+                    ghidra_data_type = self.get_ghidra_type_from_resh_type(
+                        member_data_type
+                    )
                     ret.add(
                         ghidra_data_type, ghidra_data_type.getLength(), member.name, ""
                     )
@@ -274,7 +282,7 @@ class ReshGhidraImporter(object):
                 raise ReshPyGhidraException(
                     f"Refused to enter infinite recursion {T.name}"
                 )
-            #base = get_ghidra_type_by_name(T.content.base_type.type_name)
+            # base = get_ghidra_type_by_name(T.content.base_type.type_name)
             base = self.get_cached_ghidra_type_by_name(T.content.base_type.type_name)
             if base is None:
                 logger.warning(
@@ -290,7 +298,9 @@ class ReshGhidraImporter(object):
             ret = FunctionDefinitionDataType(RESHARE_CATEGORY_PATH, name)
             if T.content.return_type is not None:
                 try:
-                    ret_type = self.get_cached_ghidra_type_by_name(T.content.return_type.type_name)
+                    ret_type = self.get_cached_ghidra_type_by_name(
+                        T.content.return_type.type_name
+                    )
                     if ret_type is not None:
                         ret.setReturnType(ret_type)
                 except ReshPyGhidraException:
@@ -327,7 +337,7 @@ class ReshGhidraImporter(object):
                 self.dtm.endTransaction(t, False)
                 break
 
-            skip=False
+            skip = False
             for f in self._data_type_filters:
                 if not f(dt):
                     skip = True
@@ -337,18 +347,19 @@ class ReshGhidraImporter(object):
             logger.info(f"[*] Importing type {dt.name}")
             try:
                 local_type = self.get_ghidra_type_from_resh_type(dt)
-                self.base_type_map[dt.name]=local_type
+                self.base_type_map[dt.name] = local_type
             except ReshPyGhidraException as e:
-                logger.error("[-] Couldn't import '%s' :(\n>> %s <<" % (dt.name, str(e)))
+                logger.error(
+                    "[-] Couldn't import '%s' :(\n>> %s <<" % (dt.name, str(e))
+                )
                 # self.dtm.endTransaction(t, False)
                 # raise
 
         self.dtm.endTransaction(t, True)
 
     def _map_symbol(self, map_sym: ReshGhidraSymbol):
-        self._ghidra_symbol_map_address[map_sym.address]=map_sym
-        self._ghidra_symbol_map_name[map_sym.name]=map_sym
-
+        self._ghidra_symbol_map_address[map_sym.address] = map_sym
+        self._ghidra_symbol_map_name[map_sym.name] = map_sym
 
     def _import_symbols(self):
         for sym in self.resh.symbols:
@@ -372,21 +383,27 @@ class ReshGhidraImporter(object):
                 continue
             else:
                 self._map_symbol(
-                    ReshGhidraSymbol(name=sym.name, address=sym_address.getOffset(), ghidra_type=local_type, resh_symbol=sym))
+                    ReshGhidraSymbol(
+                        name=sym.name,
+                        address=sym_address.getOffset(),
+                        ghidra_type=local_type,
+                        resh_symbol=sym,
+                    )
+                )
 
-    def get_symbol_by_name(self, name: str) -> ReshGhidraSymbol|None:
+    def get_symbol_by_name(self, name: str) -> ReshGhidraSymbol | None:
         if name in self._ghidra_symbol_map_name:
             return self._ghidra_symbol_map_name[name]
         else:
             return None
 
-    def get_symbol_by_address(self, address: int) -> ReshGhidraSymbol|None:
+    def get_symbol_by_address(self, address: int) -> ReshGhidraSymbol | None:
         if address in self._ghidra_symbol_map_address:
             return self._ghidra_symbol_map_address[address]
         else:
             return None
 
-    def get_symbols(self)->Generator[ReshGhidraSymbol, None, None]:
+    def get_symbols(self) -> Generator[ReshGhidraSymbol, None, None]:
         for _, item in self._ghidra_symbol_map_name.items():
             yield item
 
@@ -400,6 +417,7 @@ def address_to_resh(a: Address) -> ReshAddress:
         address_space.getName(),
     )
 
+
 def canonical_name(name: str) -> str:
     ret = name
     if ":" in ret:
@@ -412,15 +430,17 @@ class ReshGhidraExporter(object):
         self.program = program
         self.dtm = program.getDataTypeManager()
 
-        self.resh_type_cache: dict[str,ReshDataType] = {"undefined": ReshDataType(
-            name="resh_undefined",
-            size=1,
-            content=ReshDataTypeContentPrimitivePy(),
-            modifiers=[],
-        )}
+        self.resh_type_cache: dict[str, ReshDataType] = {
+            "undefined": ReshDataType(
+                name="resh_undefined",
+                size=1,
+                content=ReshDataTypeContentPrimitivePy(),
+                modifiers=[],
+            )
+        }
 
-        self._symbol_filters: list[Callable[[Symbol], bool]]=[]
-        self._data_type_filters: list[Callable[[DataType], bool]]=[]
+        self._symbol_filters: list[Callable[[Symbol], bool]] = []
+        self._data_type_filters: list[Callable[[DataType], bool]] = []
 
     def add_symbol_filter(self, filt: Callable[[Symbol], bool]):
         self._symbol_filters.append(filt)
@@ -441,14 +461,16 @@ class ReshGhidraExporter(object):
         )
         export.symbols.extend(self.get_function_symbols())
         _ = self.get_data_types()
-        export.data_types.extend([v for _, v in self.resh_type_cache.items()])  # ...all types must be in cache already
+        export.data_types.extend(
+            [v for _, v in self.resh_type_cache.items()]
+        )  # ...all types must be in cache already
         return export
 
     def get_function_symbols(self) -> list[ReshSymbol]:
         ret: list[ReshSymbol] = []
-        func_iter=self.program.getFunctionManager().getFunctions(True)
+        func_iter = self.program.getFunctionManager().getFunctions(True)
         while func_iter.hasNext():
-            func=func_iter.next()
+            func = func_iter.next()
             func_name = func.getName()
             func_type_name = func.getName()
             if not func_type_name.startswith("f_"):
@@ -495,7 +517,9 @@ class ReshGhidraExporter(object):
         if T_name in self.resh_type_cache:
             return self.resh_type_cache[T_name]
         logger.info(f"Adding {T_name}")
-        ret = ReshDataType(name=T_name, size=int(T.getLength()), content=None, modifiers=[])
+        ret = ReshDataType(
+            name=T_name, size=int(T.getLength()), content=None, modifiers=[]
+        )
 
         content: ReshDataTypeContent
         if T_name.startswith("undefined"):
@@ -534,7 +558,6 @@ class ReshGhidraExporter(object):
                 base_type=T.getDataType().getName(), length=int(T.getElementLength())
             )
         elif isinstance(T, JClass("ghidra.program.database.data.EnumDB")):
-
             logger.debug("Adding enum type")
             content = ReshDataTypeContentEnumPy(
                 base_type="void *", members=[]
@@ -551,9 +574,9 @@ class ReshGhidraExporter(object):
                 target_type_name = target_type.getName()
             content = ReshDataTypeContentPointerPy(target_type=target_type_name)
         elif isinstance(T, JClass("ghidra.program.database.data.TypedefDB")):
-            target_ghidra_type=T.getDataType()
+            target_ghidra_type = T.getDataType()
             logger.debug(f"Adding typedef to {target_ghidra_type}")
-            resh_data_type=self.get_resh_data_type_from_ghidra(target_ghidra_type)
+            resh_data_type = self.get_resh_data_type_from_ghidra(target_ghidra_type)
             content = resh_data_type.content
         else:
             logger.warning(f"Falling back to primitive type! {type(T)}")
@@ -563,14 +586,13 @@ class ReshGhidraExporter(object):
         self.resh_type_cache[T_name] = ret
         return ret
 
-
     def get_data_types(self) -> list[ReshDataType]:
         ret = []
         for dt in self.dtm.getAllDataTypes():
             filtered = False
             for dt_filter in self._data_type_filters:
                 if not dt_filter(dt):
-                    filtered=True
+                    filtered = True
                     break
             if filtered:
                 continue

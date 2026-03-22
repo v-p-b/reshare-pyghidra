@@ -7,13 +7,13 @@ import rfc8785
 
 pyghidra.start()
 
-target_dir=sys.argv[1]
+target_dir = sys.argv[1]
 
 with tempfile.TemporaryDirectory(delete=False) as project_dir:
-    reshare_path=os.path.join(project_dir, "reshare.json")
-    os.environ["IMPORT_PATH"]=reshare_path
-    os.environ["EXPORT_PATH"]=reshare_path
-    os.environ["IMPORT_MODE"]="address"
+    reshare_path = os.path.join(project_dir, "reshare.json")
+    os.environ["IMPORT_PATH"] = reshare_path
+    os.environ["EXPORT_PATH"] = reshare_path
+    os.environ["IMPORT_MODE"] = "address"
 
     with pyghidra.open_project(project_dir, "TestProject", create=True) as project:
         loader = pyghidra.program_loader().project(project)
@@ -35,32 +35,24 @@ with tempfile.TemporaryDirectory(delete=False) as project_dir:
             pyghidra.analyze(program, pyghidra.task_monitor(30))
             program.save("Analyzed", pyghidra.task_monitor())
             pyghidra.ghidra_script(
-                os.path.join(
-                    os.getcwd(), "reshare-pyghidra-export.py"
-                ),
+                os.path.join(os.getcwd(), "reshare-pyghidra-export.py"),
                 project,
                 program,
             )
             json_debug = json.load(open(reshare_path, "r"))
-            with open(
-                os.path.join(project_dir, "debug_canonical.json"), "w"
-            ) as _io:
-                j=json.loads(rfc8785.dumps(json_debug))
+            with open(os.path.join(project_dir, "debug_canonical.json"), "w") as _io:
+                j = json.loads(rfc8785.dumps(json_debug))
                 json.dump(j, _io, indent=2)
         with pyghidra.program_context(project, f"/{p_stripped}") as program:
             pyghidra.analyze(program, pyghidra.task_monitor(30))
             program.save("Analyzed", pyghidra.task_monitor())
             pyghidra.ghidra_script(
-                os.path.join(
-                    os.getcwd(), "reshare-pyghidra-import.py"
-                ),
+                os.path.join(os.getcwd(), "reshare-pyghidra-import.py"),
                 project,
                 program,
             )
             pyghidra.ghidra_script(
-                os.path.join(
-                    os.getcwd(), "reshare-pyghidra-export.py"
-                ),
+                os.path.join(os.getcwd(), "reshare-pyghidra-export.py"),
                 project,
                 program,
             )
@@ -68,7 +60,7 @@ with tempfile.TemporaryDirectory(delete=False) as project_dir:
             with open(
                 os.path.join(project_dir, "unstripped_canonical.json"), "w"
             ) as _io:
-                j=json.loads(rfc8785.dumps(json_stripped))
+                j = json.loads(rfc8785.dumps(json_stripped))
                 json.dump(j, _io, indent=2)
         del os.environ["IMPORT_PATH"]
         del os.environ["EXPORT_PATH"]

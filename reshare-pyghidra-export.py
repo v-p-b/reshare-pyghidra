@@ -23,7 +23,7 @@ from reshare_pyghidra import ReshGhidraExporter
 
 LOG_FILE = None
 LOG_LEVEL = logging.DEBUG
-EXPORT_PATH = os.environ.get("EXPORT_PATH","/tmp/reshare.json")
+EXPORT_PATH = os.environ.get("EXPORT_PATH", "/tmp/reshare.json")
 SOURCE_ARCHIVE_PREFIX = ""
 
 # -----------------------------------------------------------------------------
@@ -47,15 +47,17 @@ for h in handlers:
 
 logger.info(f"Exporting to: {EXPORT_PATH}")
 
+
 def type_filter_cb(dt: DataType) -> bool:
     archive_name = dt.getSourceArchive().getName()
     if not archive_name.startswith(SOURCE_ARCHIVE_PREFIX):
         return False
     return True
 
-exporter=ReshGhidraExporter(currentProgram)
+
+exporter = ReshGhidraExporter(currentProgram)
 exporter.add_data_type_filter(type_filter_cb)
-export=exporter.export()
+export = exporter.export()
 
 with open(EXPORT_PATH, "w") as out:
     out.write(json.dumps(export.to_json_data(), indent=2))
